@@ -7,8 +7,7 @@ contract FilaDoge is ERC20 {
     uint public hasRewardedInviters;
     mapping(address => bool) public hasBeenInvited;
     mapping(address => bool) public hasGambled;
-
-    uint _airDrop1Released;
+    
     uint _airDrop2Released;
     uint _hasRewardedInviteeAmount;
     uint _lotteryReleasedAmount;
@@ -76,9 +75,9 @@ contract FilaDoge is ERC20 {
     function airDrop2 (address[] memory list) onlyOwner public returns (uint) {
         uint initial = _airDrop2Released;
         require (initial < AIRDROP_2_SIZE, "Has already accomplished before.");
-        require (initial + list.length <= AIRDROP_2_SIZE, "Invalid input address list length.");
-        uint p = initial;
         uint len = list.length;
+        require (initial + len <= AIRDROP_2_SIZE, "Invalid input address list length.");
+        uint p = initial;
         for (; p < AIRDROP_2_TIER_0 && p - initial < len; p++) {
             _mint(list[p - initial], _withDecimal(AIRDROP_2_TIER_0_REWARD));
         }
@@ -127,8 +126,8 @@ contract FilaDoge is ERC20 {
             grossReward = LOTTERY_POOL - _lotteryReleasedAmount;
         }
         _lotteryReleasedAmount += grossReward;
+        _gamblerRewards[gambler] = grossReward;
         gamblerReward = _withDecimal(grossReward);
-        _gamblerRewards[gambler] = gamblerReward;
         _mint(gambler, gamblerReward);
     }
 
@@ -142,7 +141,7 @@ contract FilaDoge is ERC20 {
         for (uint i = 0; i < _inviters.length; i++) {
             address inviter = _inviters[i];
             result[i].account = inviter;
-            result[i].amount = _inviterRewards[inviter];
+            result[i].amount = _withDecimal(_inviterRewards[inviter]);
         }
     }
 
@@ -151,7 +150,7 @@ contract FilaDoge is ERC20 {
         for (uint i = 0; i < _gamblers.length; i++) {
             address gambler = _gamblers[i];
             result[i].account = gambler;
-            result[i].amount = _gamblerRewards[gambler];
+            result[i].amount = _withDecimal(_gamblerRewards[gambler]);
         }
     }
 
