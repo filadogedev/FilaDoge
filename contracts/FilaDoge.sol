@@ -12,6 +12,7 @@ contract FilaDoge is ERC20 {
     uint _airDrop2Released;
     uint _hasRewardedInviteeAmount;
     uint _lotteryReleasedAmount;
+    uint _lotteryStartTime;
     address _owner;
     address[] _invitees;
     address[] _inviters;
@@ -23,23 +24,12 @@ contract FilaDoge is ERC20 {
     uint constant MAX_SUPPLY = 10 ** 12;
     uint constant RATIO_BASE = 10 ** 8;
 
-    //InitialMint, 40%
-    uint constant INITIAL_MINT = MAX_SUPPLY * 2 / 5;
+    //InitialMint, 30%
+    uint constant DONATION_COOP_POOL = MAX_SUPPLY * 1 / 5;
+    uint constant FUTURE_EVENT_POOL = MAX_SUPPLY * 1 / 10;
 
     //Token airdrop 1, 6%
-    uint constant AIRDROP_1_SIZE = AIRDROP_1_TIER_5;
-    uint constant AIRDROP_1_TIER_0 = 1;
-    uint constant AIRDROP_1_TIER_0_REWARD = 540000 * MAX_SUPPLY / RATIO_BASE;
-    uint constant AIRDROP_1_TIER_1 = 11;
-    uint constant AIRDROP_1_TIER_1_REWARD = 42000 * MAX_SUPPLY / RATIO_BASE;
-    uint constant AIRDROP_1_TIER_2 = 101;
-    uint constant AIRDROP_1_TIER_2_REWARD = 21000 * MAX_SUPPLY / RATIO_BASE;
-    uint constant AIRDROP_1_TIER_3 = 301;
-    uint constant AIRDROP_1_TIER_3_REWARD = 10500 * MAX_SUPPLY / RATIO_BASE;
-    uint constant AIRDROP_1_TIER_4 = 401;
-    uint constant AIRDROP_1_TIER_4_REWARD = 5250 * MAX_SUPPLY / RATIO_BASE;
-    uint constant AIRDROP_1_TIER_5 = 601;
-    uint constant AIRDROP_1_TIER_5_REWARD = 2625 * MAX_SUPPLY / RATIO_BASE;
+    uint constant AIRDROP_1_REWARD = 3 * MAX_SUPPLY / 50;
 
     //Token airdrop 2, 4%
     uint constant AIRDROP_2_SIZE = AIRDROP_2_TIER_4;
@@ -62,47 +52,25 @@ contract FilaDoge is ERC20 {
     uint constant INVITEE_REWARD_FACTOR_A = 50867653407 * MAX_SUPPLY / 10 ** 12;
     uint constant INVITEE_REWARD_FACTOR_B = 10000;
 
-    //Lottery, 10%
+    //Lottery, 20%
     uint constant MIN_LOTTERY_REWARD = 1 * MAX_SUPPLY / RATIO_BASE;
     uint constant MAX_LOTTERY_REWARD = 100 * MAX_SUPPLY / RATIO_BASE;
-    uint constant LOTTERY_POOL = MAX_SUPPLY / 10;
+    uint constant LOTTERY_POOL = MAX_SUPPLY / 5;
 
     struct ValuePair {
         address account;
         uint amount;
     }
 
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {
+    constructor(string memory name, string memory symbol, address donation_coop_pool, address future_event_pool, uint initialLotteryStartTime) ERC20(name, symbol) {
         _owner = _msgSender();
-        _mint(_owner, _withDecimal(INITIAL_MINT));
+        _lotteryStartTime = initialLotteryStartTime;
+        _mint(donation_coop_pool, _withDecimal(DONATION_COOP_POOL));
+        _mint(future_event_pool, _withDecimal(FUTURE_EVENT_POOL));
     }
 
-    function airDrop1 (address[] memory list) onlyOwner public returns (uint) {
-        uint initial = _airDrop1Released;
-        require (initial < AIRDROP_1_SIZE, "Has already accomplished before.");
-        require (initial + list.length <= AIRDROP_1_SIZE, "Invalid input address list length.");
-        uint p = initial;
-        uint len = list.length;
-        for (; p < AIRDROP_1_TIER_0 && p - initial < len; p++) {
-            _mint(list[p - initial], _withDecimal(AIRDROP_1_TIER_0_REWARD));
-        }
-        for (; p < AIRDROP_1_TIER_1 && p - initial < len; p++) {
-            _mint(list[p - initial], _withDecimal(AIRDROP_1_TIER_1_REWARD));
-        }
-        for (; p < AIRDROP_1_TIER_2 && p - initial < len; p++) {
-            _mint(list[p - initial], _withDecimal(AIRDROP_1_TIER_2_REWARD));
-        }
-        for (; p < AIRDROP_1_TIER_3 && p - initial < len; p++) {
-            _mint(list[p - initial], _withDecimal(AIRDROP_1_TIER_3_REWARD));
-        }
-        for (; p < AIRDROP_1_TIER_4 && p - initial < len; p++) {
-            _mint(list[p - initial], _withDecimal(AIRDROP_1_TIER_4_REWARD));
-        }
-        for (; p < AIRDROP_1_TIER_5 && p - initial < len; p++) {
-            _mint(list[p - initial], _withDecimal(AIRDROP_1_TIER_5_REWARD));
-        }
-        _airDrop1Released = p;
-        return p;
+    function airDrop1 (address receiver) onlyOwner public {
+        _mint(receiver, _withDecimal(AIRDROP_1_REWARD));
     }
 
     function airDrop2 (address[] memory list) onlyOwner public returns (uint) {
@@ -130,12 +98,6 @@ contract FilaDoge is ERC20 {
         return p;
     }
 
-    function burnByOwner(ValuePair[] memory pairs) onlyOwner public {
-        for (uint i = 0; i < pairs.length; i++) {
-            _burn(pairs[i].account, pairs[i].amount);
-        }
-    }
-
     function mint(address inviter) public returns (uint inviterReward, uint inviteeReward) {
         require(_invitees.length < MAX_INVITATION, "Invitee pool has been exhausted.");
         address invitee = _msgSender();
@@ -151,7 +113,7 @@ contract FilaDoge is ERC20 {
         _mint(invitee, inviteeReward);
     }
 
-    function lottery(address inviter) public returns (uint inviterReward, uint gamblerReward) {
+    function lottery(address inviter) afterLotteryStartTime public returns (uint inviterReward, uint gamblerReward) {
         require(_lotteryReleasedAmount < LOTTERY_POOL, "Lottery pool has been exhausted.");
         address gambler = _msgSender();
         require(inviter != gambler, "Inviter and your address cannot be the same one.");
@@ -225,8 +187,22 @@ contract FilaDoge is ERC20 {
         return _owner;
     }
 
+    function lotteryStartTime() public view returns (uint) {
+        return _lotteryStartTime;
+    }
+
     function maxSupply() public view returns (uint) {
         return _withDecimal(MAX_SUPPLY);
+    }
+
+    function changeOwner(address newOwner) onlyOwner public returns (address) {
+        _owner = newOwner;
+        return _owner;
+    }
+
+    function changeLotteryStartTime(uint newLotteryStartTime) onlyOwner public returns (uint) {
+        _lotteryStartTime = newLotteryStartTime;
+        return _lotteryStartTime;
     }
 
     function _rewardInviter(address inviter) private returns (uint inviterReward) {
@@ -264,18 +240,16 @@ contract FilaDoge is ERC20 {
         _;
     }
 
+    modifier afterLotteryStartTime() {
+        require(block.timestamp >= _lotteryStartTime, "Lottery has not started.");
+        _;
+    }
+
     //only for dev
     function checks() public pure {
-        assert(INITIAL_MINT == MAX_SUPPLY * 40 / 100);
-
-        uint airdrop_1 =
-          AIRDROP_1_TIER_0 * AIRDROP_1_TIER_0_REWARD
-        + (AIRDROP_1_TIER_1 - AIRDROP_1_TIER_0) * AIRDROP_1_TIER_1_REWARD
-        + (AIRDROP_1_TIER_2 - AIRDROP_1_TIER_1) * AIRDROP_1_TIER_2_REWARD
-        + (AIRDROP_1_TIER_3 - AIRDROP_1_TIER_2) * AIRDROP_1_TIER_3_REWARD
-        + (AIRDROP_1_TIER_4 - AIRDROP_1_TIER_3) * AIRDROP_1_TIER_4_REWARD
-        + (AIRDROP_1_TIER_5 - AIRDROP_1_TIER_4) * AIRDROP_1_TIER_5_REWARD;
-        assert(airdrop_1 == MAX_SUPPLY * 6 / 100);
+        assert(DONATION_COOP_POOL == MAX_SUPPLY * 20 / 100);
+        assert(FUTURE_EVENT_POOL == MAX_SUPPLY * 10 / 100);
+        assert(AIRDROP_1_REWARD == MAX_SUPPLY * 6 / 100);
 
         uint airdrop_2 =
           AIRDROP_2_TIER_0 * AIRDROP_2_TIER_0_REWARD
@@ -290,6 +264,6 @@ contract FilaDoge is ERC20 {
 
         assert(MIN_LOTTERY_REWARD < MAX_LOTTERY_REWARD);
 
-        assert(LOTTERY_POOL == MAX_SUPPLY * 10 / 100);
+        assert(LOTTERY_POOL == MAX_SUPPLY * 20 / 100);
     }
 }
