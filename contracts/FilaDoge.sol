@@ -97,9 +97,8 @@ contract FilaDoge is ERC20 {
         return p;
     }
 
-    function mint(address inviter) public returns (uint inviterReward, uint inviteeReward) {
+    function mint(address inviter, address invitee) public returns (uint inviterReward, uint inviteeReward) {
         require(_invitees.length < MAX_INVITATION, "Invitee pool has been exhausted.");
-        address invitee = _msgSender();
         require(inviter != invitee, "Inviter and your address cannot be the same one.");
         require(!hasBeenInvited[invitee], "Your address has already been invited.");
 
@@ -112,9 +111,8 @@ contract FilaDoge is ERC20 {
         _mint(invitee, inviteeReward);
     }
 
-    function lottery(address inviter) afterLotteryStartTime public returns (uint inviterReward, uint gamblerReward) {
+    function lottery(address inviter, address gambler) afterLotteryStartTime public returns (uint inviterReward, uint gamblerReward) {
         require(_lotteryReleasedAmount < LOTTERY_POOL, "Lottery pool has been exhausted.");
-        address gambler = _msgSender();
         require(inviter != gambler, "Inviter and your address cannot be the same one.");
         require(!hasGambled[gambler], "Your address has already gambled.");
 
