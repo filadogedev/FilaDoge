@@ -6,20 +6,20 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 /// @title FilaDoge, the first open-source peer-to-peer digital meme-token on Filecoin Virtual Machine (FEVM)
 /// @author FilaDoge Dev
 contract FilaDoge is ERC20 {
-    uint _airDrop2Released;
-    uint _hasRewardedInviters;
-    uint _hasRewardedInviteeAmount;
-    uint _lotteryReleasedAmount;
-    uint _lotteryStartTime;
-    address _owner;
-    address[] _invitees;
-    address[] _inviters;
-    address[] _gamblers;
-    mapping(address => bool) _hasBeenInvited;
-    mapping(address => bool) _hasGambled;
-    mapping(address => uint) _inviterRewards;
-    mapping(address => uint) _inviteeRewards;
-    mapping(address => uint) _gamblerRewards;
+    uint private _airDrop2Released;
+    uint private _hasRewardedInviters;
+    uint private _hasRewardedInviteeAmount;
+    uint private _lotteryReleasedAmount;
+    uint private _lotteryStartTime;
+    address private _owner;
+    address[] private _invitees;
+    address[] private _inviters;
+    address[] private _gamblers;
+    mapping(address => bool) private _hasBeenInvited;
+    mapping(address => bool) private _hasGambled;
+    mapping(address => uint) private _inviterRewards;
+    mapping(address => uint) private _inviteeRewards;
+    mapping(address => uint) private _gamblerRewards;
 
     //Token basics
     uint constant MAX_SUPPLY = 10 ** 12;
@@ -92,7 +92,7 @@ contract FilaDoge is ERC20 {
      * airdrop will be allocated to the Protocol Lab as a lump sum and to be
      * re-distributed to FIL holders in the future.
      */
-    function airDrop1 (address receiver1, address receiver2) onlyOwner public {
+    function airDrop1 (address receiver1, address receiver2) onlyOwner external {
         _mint(receiver1, _withDecimal(AIRDROP_1_REWARD_PART_1));
         _mint(receiver2, _withDecimal(AIRDROP_1_REWARD_PART_2));
     }
@@ -101,7 +101,7 @@ contract FilaDoge is ERC20 {
      * @dev Second airdrop is for Vitalik and top 400 Eth holders (recorded from
      * etherscan.io at Mar. 14 2023 - 2:00AM UTC), with 4% of the total supply.
      */
-    function airDrop2 (address[] memory receiverList) onlyOwner public returns (uint) {
+    function airDrop2 (address[] memory receiverList) onlyOwner external returns (uint) {
         uint initial = _airDrop2Released;
         require (initial < AIRDROP_2_SIZE, "Has already accomplished before.");
         uint len = receiverList.length;
@@ -139,7 +139,7 @@ contract FilaDoge is ERC20 {
     function mint(
         address inviter,
         address invitee
-    ) public returns (
+    ) external returns (
         uint inviterReward,
         uint inviteeReward
     ) {
@@ -167,7 +167,7 @@ contract FilaDoge is ERC20 {
     function lottery(
         address inviter,
         address gambler
-    ) afterLotteryStartTime public returns (
+    ) afterLotteryStartTime external returns (
         uint inviterReward,
         uint gamblerReward
     ) {
@@ -191,7 +191,7 @@ contract FilaDoge is ERC20 {
     /**
      * @dev Returns next invitee's reward.
      */
-    function nextInviteeReward() public view returns (uint) {
+    function nextInviteeReward() external view returns (uint) {
         if (_invitees.length == MAX_INVITATION) return 0;
         return _withDecimal(_inviteeReward(_invitees.length + 1));
     }
@@ -199,7 +199,7 @@ contract FilaDoge is ERC20 {
     /**
      * @dev Returns inviters' addresses as well as rewards received correspondingly.
      */
-    function hasRewardedInviterList() public view returns (ValuePair[] memory result) {
+    function hasRewardedInviterList() external view returns (ValuePair[] memory result) {
         result = new ValuePair[](_inviters.length); 
         for (uint i = 0; i < _inviters.length; i++) {
             address inviter = _inviters[i];
@@ -211,7 +211,7 @@ contract FilaDoge is ERC20 {
     /**
      * @dev Returns invitees' addresses as well as rewards received correspondingly.
      */
-    function hasRewardedInviteeList() public view returns (ValuePair[] memory result) {
+    function hasRewardedInviteeList() external view returns (ValuePair[] memory result) {
         result = new ValuePair[](_invitees.length); 
         for (uint i = 0; i < _invitees.length; i++) {
             address invitee = _invitees[i];
@@ -223,7 +223,7 @@ contract FilaDoge is ERC20 {
     /**
      * @dev Returns gamblers' addresses as well as rewards received correspondingly.
      */
-    function hasRewardedGamblerList() public view returns (ValuePair[] memory result) {
+    function hasRewardedGamblerList() external view returns (ValuePair[] memory result) {
         result = new ValuePair[](_gamblers.length); 
         for (uint i = 0; i < _gamblers.length; i++) {
             address gambler = _gamblers[i];
@@ -235,112 +235,112 @@ contract FilaDoge is ERC20 {
     /**
      * @dev Returns currently released uints of inviter reward.
      */
-    function hasRewardedInviters() public view returns (uint) {
+    function hasRewardedInviters() external view returns (uint) {
         return _hasRewardedInviters;
     }
 
     /**
      * @dev Returns whether `invitee` has been invited.
      */
-    function hasBeenInvited(address invitee) public view returns (bool) {
+    function hasBeenInvited(address invitee) external view returns (bool) {
         return _hasBeenInvited[invitee];
     }
 
     /**
      * @dev Returns whether `gambler` has taken part in lottery game.
      */
-    function hasGambled(address gambler) public view returns (bool) {
+    function hasGambled(address gambler) external view returns (bool) {
         return _hasGambled[gambler];
     }
 
     /**
      * @dev Returns currently released inviter reward amount in total.
      */
-    function hasRewardedInviterAmount() public view returns (uint) {
+    function hasRewardedInviterAmount() external view returns (uint) {
         return _withDecimal(_hasRewardedInviters * INVITER_REWARD);
     }
 
     /**
      * @dev Returns currently released invitee reward amount in total.
      */
-    function hasRewardedInviteeAmount() public view returns (uint) {
+    function hasRewardedInviteeAmount() external view returns (uint) {
         return _withDecimal(_hasRewardedInviteeAmount);
     }
 
     /**
      * @dev Returns current number of invitees.
      */
-    function hasRewardedInvitees() public view returns (uint) {
+    function hasRewardedInvitees() external view returns (uint) {
         return _invitees.length;
     }
 
     /**
      * @dev Returns current address list of invitees.
      */
-    function inviteeList() public view returns (address[] memory) {
+    function inviteeList() external view returns (address[] memory) {
         return _invitees;
     }
 
     /**
      * @dev Returns currently released lottery reward amount in total.
      */
-    function lotteryReleasedAmount() public view returns (uint) {
+    function lotteryReleasedAmount() external view returns (uint) {
         return _withDecimal(_lotteryReleasedAmount);
     }
 
     /**
      * @dev Returns current number of gamblers.
      */
-    function gamblers() public view returns (uint) {
+    function gamblers() external view returns (uint) {
         return _gamblers.length;
     }
 
     /**
      * @dev Returns current address list of gamblers.
      */
-    function gamblerList() public view returns (address[] memory) {
+    function gamblerList() external view returns (address[] memory) {
         return _gamblers;
     }
 
     /**
      * @dev Returns inviter reward granted to `inviter`.
      */
-    function inviterRewardReceived(address inviter) public view returns (uint) {
+    function inviterRewardReceived(address inviter) external view returns (uint) {
         return _withDecimal(_inviterRewards[inviter]);
     }
 
     /**
      * @dev Returns invitee reward granted to `invitee`.
      */
-    function inviteeRewardReceived(address invitee) public view returns (uint) {
+    function inviteeRewardReceived(address invitee) external view returns (uint) {
         return _withDecimal(_inviteeRewards[invitee]);
     }
 
     /**
      * @dev Returns gambler reward granted to `gambler`.
      */
-    function gamblerRewardReceived(address gambler) public view returns (uint) {
+    function gamblerRewardReceived(address gambler) external view returns (uint) {
         return _withDecimal(_gamblerRewards[gambler]);
     }
 
     /**
      * @dev Returns contract owner address.
      */
-    function owner() public view returns (address) {
+    function owner() external view returns (address) {
         return _owner;
     }
 
     /**
      * @dev Returns lottery start time. Lottery can only be played after this timestamp.
      */
-    function lotteryStartTime() public view returns (uint) {
+    function lotteryStartTime() external view returns (uint) {
         return _lotteryStartTime;
     }
 
     /**
      * @dev Returns maximum token supply.
      */
-    function maxSupply() public view returns (uint) {
+    function maxSupply() external view returns (uint) {
         return _withDecimal(MAX_SUPPLY);
     }
 
@@ -349,7 +349,7 @@ contract FilaDoge is ERC20 {
      *
      * We plan to change the contract owner address to a dead one (i.e. 0xdead) in the future.
      */
-    function changeOwner(address newOwner) onlyOwner public returns (address) {
+    function changeOwner(address newOwner) onlyOwner external returns (address) {
         _owner = newOwner;
         return _owner;
     }
@@ -357,7 +357,7 @@ contract FilaDoge is ERC20 {
     /**
      * @dev Change lottery start time to `newLotteryStartTime`.
      */
-    function changeLotteryStartTime(uint newLotteryStartTime) onlyOwner public returns (uint) {
+    function changeLotteryStartTime(uint newLotteryStartTime) onlyOwner external returns (uint) {
         _lotteryStartTime = newLotteryStartTime;
         return _lotteryStartTime;
     }
