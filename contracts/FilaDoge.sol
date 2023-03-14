@@ -3,7 +3,7 @@ pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-/// @title FilaDoge, an open-source peer-to-peer digital meme-token on Filecoin Virtual Machine
+/// @title FilaDoge, the first open-source peer-to-peer digital meme-token on Filecoin Virtual Machine (FEVM)
 /// @author FilaDoge Dev
 contract FilaDoge is ERC20 {
     uint _airDrop2Released;
