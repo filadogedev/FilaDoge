@@ -18,6 +18,7 @@ contract FilaDoge is ERC20 {
     mapping(address => bool) _hasBeenInvited;
     mapping(address => bool) _hasGambled;
     mapping(address => uint) _inviterRewards;
+    mapping(address => uint) _inviteeRewards;
     mapping(address => uint) _gamblerRewards;
 
     //Token basics
@@ -84,7 +85,7 @@ contract FilaDoge is ERC20 {
     }
 
     /**
-     * @dev First airdrop, reward top 600 FIL holders* with 6% of the total supply.
+     * @dev First airdrop, rewards top 600 FIL holders* with 6% of the total supply.
      *
      * Due to limited knowledge of top FIL holders’ 0x or f4 addresses, this part of
      * airdrop will be allocated to the Protocol Lab as a lump sum and to be
@@ -95,7 +96,7 @@ contract FilaDoge is ERC20 {
     }
 
     /**
-     * @dev Second airdrop, reward top 400 ETH holders with 4% of the total supply.
+     * @dev Second airdrop is for Vitalik and top 400 Eth holders, with 4% of the total supply.
      */
     function airDrop2 (address[] memory receiverList) onlyOwner public returns (uint) {
         uint initial = _airDrop2Released;
@@ -130,7 +131,7 @@ contract FilaDoge is ERC20 {
      * provided on the website to convert 0x addresses. The relationship between the FLD
      * token amount and the order of claim is described by the following mathematical model,
      * with the maximum of 500,000 addresses. The actual amount of FLD token received will
-     * be integer as the decimal points will be rounded down. 
+     * be integer as the decimal points will be rounded down.
      */
     function mint(
         address inviter,
@@ -148,6 +149,7 @@ contract FilaDoge is ERC20 {
         inviterReward = _rewardInviter(inviter);
         uint inviteeGrossReward = _inviteeReward(_invitees.length);
         _hasRewardedInviteeAmount += inviteeGrossReward;
+        _inviteeRewards[invitee] = inviteeGrossReward;
         inviteeReward = _withDecimal(inviteeGrossReward);
         _mint(invitee, inviteeReward);
     }
@@ -200,6 +202,18 @@ contract FilaDoge is ERC20 {
             address inviter = _inviters[i];
             result[i].account = inviter;
             result[i].amount = _withDecimal(_inviterRewards[inviter]);
+        }
+    }
+
+    /**
+     * @dev Returns invitees' addresses as well as rewards received correspondingly.
+     */
+    function hasRewardedInviteeList() public view returns (ValuePair[] memory result) {
+        result = new ValuePair[](_invitees.length); 
+        for (uint i = 0; i < _invitees.length; i++) {
+            address invitee = _invitees[i];
+            result[i].account = invitee;
+            result[i].amount = _withDecimal(_inviteeRewards[invitee]);
         }
     }
 
@@ -260,7 +274,7 @@ contract FilaDoge is ERC20 {
     /**
      * @dev Returns current address list of invitees.
      */
-    function hasRewardedInviteeList() public view returns (address[] memory) {
+    function inviteeList() public view returns (address[] memory) {
         return _invitees;
     }
 
@@ -283,6 +297,27 @@ contract FilaDoge is ERC20 {
      */
     function gamblerList() public view returns (address[] memory) {
         return _gamblers;
+    }
+
+    /**
+     * @dev Returns inviter reward granted to `inviter`.
+     */
+    function inviterRewardReceived(address inviter) public view returns (uint) {
+        return _withDecimal(_inviterRewards[inviter]);
+    }
+
+    /**
+     * @dev Returns invitee reward granted to `invitee`.
+     */
+    function inviteeRewardReceived(address invitee) public view returns (uint) {
+        return _withDecimal(_inviteeRewards[invitee]);
+    }
+
+    /**
+     * @dev Returns gambler reward granted to `gambler`.
+     */
+    function gamblerRewardReceived(address gambler) public view returns (uint) {
+        return _withDecimal(_gamblerRewards[gambler]);
     }
 
     /**
