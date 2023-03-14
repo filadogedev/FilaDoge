@@ -30,7 +30,8 @@ contract FilaDoge is ERC20 {
     uint constant FUTURE_EVENT_POOL = MAX_SUPPLY * 1 / 10;
 
     //Token airdrop 1, 6%
-    uint constant AIRDROP_1_REWARD = 3 * MAX_SUPPLY / 50;
+    uint constant AIRDROP_1_REWARD_PART_1 = 1 * MAX_SUPPLY / 200;
+    uint constant AIRDROP_1_REWARD_PART_2 = 11 * MAX_SUPPLY / 200;
 
     //Token airdrop 2, 4%
     uint constant AIRDROP_2_SIZE = AIRDROP_2_TIER_4;
@@ -91,8 +92,9 @@ contract FilaDoge is ERC20 {
      * airdrop will be allocated to the Protocol Lab as a lump sum and to be
      * re-distributed to FIL holders in the future.
      */
-    function airDrop1 (address receiver) onlyOwner public {
-        _mint(receiver, _withDecimal(AIRDROP_1_REWARD));
+    function airDrop1 (address receiver1, address receiver2) onlyOwner public {
+        _mint(receiver1, _withDecimal(AIRDROP_1_REWARD_PART_1));
+        _mint(receiver2, _withDecimal(AIRDROP_1_REWARD_PART_2));
     }
 
     /**

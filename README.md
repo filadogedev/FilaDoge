@@ -12,7 +12,7 @@ Reward Vitalik & top 400 ETH holders (recorded from etherscan.io at Mar. 14 2023
 Early invitees will be able to mint their amount of FilaDoge token (FLD) from 20% of total supply by filling in their f4 address. An f4 address converter will be provided on the website to convert 0x addresses. The relationship between the FLD token amount and the order of claim is described by the following mathematical model, with the maximum of 500,000 addresses. The actual amount of FLD token received will be integer as the decimal points will be rounded down. 
 
 $$
-FLD{\kern 3pt}claim{\kern 3pt}amount = \frac{50,867,653,407}{claim{\kern 3pt}order - 10,000}
+FLD{\kern 3pt}claim{\kern 3pt}amount = \frac{50,867,653,407}{claim{\kern 3pt}order + 10,000}
 $$
 
 |Order of Claims|	$FLD     |
