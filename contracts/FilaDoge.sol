@@ -3,12 +3,11 @@ pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
+/// @title FilaDoge, an open-source peer-to-peer digital meme-token on Filecoin Virtual Machine
+/// @author FilaDoge Dev
 contract FilaDoge is ERC20 {
-    uint public hasRewardedInviters;
-    mapping(address => bool) public hasBeenInvited;
-    mapping(address => bool) public hasGambled;
-    
     uint _airDrop2Released;
+    uint _hasRewardedInviters;
     uint _hasRewardedInviteeAmount;
     uint _lotteryReleasedAmount;
     uint _lotteryStartTime;
@@ -16,6 +15,8 @@ contract FilaDoge is ERC20 {
     address[] _invitees;
     address[] _inviters;
     address[] _gamblers;
+    mapping(address => bool) _hasBeenInvited;
+    mapping(address => bool) _hasGambled;
     mapping(address => uint) _inviterRewards;
     mapping(address => uint) _gamblerRewards;
 
@@ -61,48 +62,88 @@ contract FilaDoge is ERC20 {
         uint amount;
     }
 
-    constructor(string memory name, string memory symbol, address donation_coop_pool, address future_event_pool, uint initialLotteryStartTime) ERC20(name, symbol) {
+    /**
+     * @dev Sets the variables of token upon construction.
+     *
+     * Among these variables, `donation_coop_pool` stores tokens reserved for charity,
+     * donation and collaborations, and `future_event_pool` stores tokens reserved for
+     * future games and activities. `initialLotteryStartTime` indicates the timestamp
+     * when lottery will be started.
+     */
+    constructor(
+        string memory name,
+        string memory symbol,
+        address donation_coop_pool,
+        address future_event_pool,
+        uint initialLotteryStartTime
+    ) ERC20(name, symbol) {
         _owner = _msgSender();
         _lotteryStartTime = initialLotteryStartTime;
         _mint(donation_coop_pool, _withDecimal(DONATION_COOP_POOL));
         _mint(future_event_pool, _withDecimal(FUTURE_EVENT_POOL));
     }
 
+    /**
+     * @dev First airdrop, reward top 600 FIL holders* with 6% of the total supply.
+     *
+     * Due to limited knowledge of top FIL holders’ 0x or f4 addresses, this part of
+     * airdrop will be allocated to the Protocol Lab as a lump sum and to be
+     * re-distributed to FIL holders in the future.
+     */
     function airDrop1 (address receiver) onlyOwner public {
         _mint(receiver, _withDecimal(AIRDROP_1_REWARD));
     }
 
-    function airDrop2 (address[] memory list) onlyOwner public returns (uint) {
+    /**
+     * @dev Second airdrop, reward top 400 ETH holders with 4% of the total supply.
+     */
+    function airDrop2 (address[] memory receiverList) onlyOwner public returns (uint) {
         uint initial = _airDrop2Released;
         require (initial < AIRDROP_2_SIZE, "Has already accomplished before.");
-        uint len = list.length;
+        uint len = receiverList.length;
         require (initial + len <= AIRDROP_2_SIZE, "Invalid input address list length.");
         uint p = initial;
         for (; p < AIRDROP_2_TIER_0 && p - initial < len; p++) {
-            _mint(list[p - initial], _withDecimal(AIRDROP_2_TIER_0_REWARD));
+            _mint(receiverList[p - initial], _withDecimal(AIRDROP_2_TIER_0_REWARD));
         }
         for (; p < AIRDROP_2_TIER_1 && p - initial < len; p++) {
-            _mint(list[p - initial], _withDecimal(AIRDROP_2_TIER_1_REWARD));
+            _mint(receiverList[p - initial], _withDecimal(AIRDROP_2_TIER_1_REWARD));
         }
         for (; p < AIRDROP_2_TIER_2 && p - initial < len; p++) {
-            _mint(list[p - initial], _withDecimal(AIRDROP_2_TIER_2_REWARD));
+            _mint(receiverList[p - initial], _withDecimal(AIRDROP_2_TIER_2_REWARD));
         }
         for (; p < AIRDROP_2_TIER_3 && p - initial < len; p++) {
-            _mint(list[p - initial], _withDecimal(AIRDROP_2_TIER_3_REWARD));
+            _mint(receiverList[p - initial], _withDecimal(AIRDROP_2_TIER_3_REWARD));
         }
         for (; p < AIRDROP_2_TIER_4 && p - initial < len; p++) {
-            _mint(list[p - initial], _withDecimal(AIRDROP_2_TIER_4_REWARD));
+            _mint(receiverList[p - initial], _withDecimal(AIRDROP_2_TIER_4_REWARD));
         }
         _airDrop2Released = p;
         return p;
     }
 
-    function mint(address inviter, address invitee) public returns (uint inviterReward, uint inviteeReward) {
+    /**
+     * @dev Mint tokens for `inviter` and `invitee` correspondingly.
+     *
+     * Early invitees will be able to mint their amount of FilaDoge token (FLD) from 20%
+     * of total supply by filling in their f4 address. An f4 address converter will be
+     * provided on the website to convert 0x addresses. The relationship between the FLD
+     * token amount and the order of claim is described by the following mathematical model,
+     * with the maximum of 500,000 addresses. The actual amount of FLD token received will
+     * be integer as the decimal points will be rounded down. 
+     */
+    function mint(
+        address inviter,
+        address invitee
+    ) public returns (
+        uint inviterReward,
+        uint inviteeReward
+    ) {
         require(_invitees.length < MAX_INVITATION, "Invitee pool has been exhausted.");
         require(inviter != invitee, "Inviter and your address cannot be the same one.");
-        require(!hasBeenInvited[invitee], "Your address has already been invited.");
+        require(!_hasBeenInvited[invitee], "Your address has already been invited.");
 
-        hasBeenInvited[invitee] = true;
+        _hasBeenInvited[invitee] = true;
         _invitees.push(invitee);
         inviterReward = _rewardInviter(inviter);
         uint inviteeGrossReward = _inviteeReward(_invitees.length);
@@ -111,12 +152,25 @@ contract FilaDoge is ERC20 {
         _mint(invitee, inviteeReward);
     }
 
-    function lottery(address inviter, address gambler) afterLotteryStartTime public returns (uint inviterReward, uint gamblerReward) {
+    /**
+     * @dev Participate lottery to win tokens for `invitee` and reward `inviter`.
+     *
+     * Users may participant in a lottery game by filling in their f4 address and claim
+     * any random amount from 10,000 to 1,000,000 $FLD. The lottery game is concluded
+     * as soon as 20% of total supply is drained up.
+     */
+    function lottery(
+        address inviter,
+        address gambler
+    ) afterLotteryStartTime public returns (
+        uint inviterReward,
+        uint gamblerReward
+    ) {
         require(_lotteryReleasedAmount < LOTTERY_POOL, "Lottery pool has been exhausted.");
         require(inviter != gambler, "Inviter and your address cannot be the same one.");
-        require(!hasGambled[gambler], "Your address has already gambled.");
+        require(!_hasGambled[gambler], "Your address has already gambled.");
 
-        hasGambled[gambler] = true;
+        _hasGambled[gambler] = true;
         _gamblers.push(gambler);
         inviterReward = _rewardInviter(inviter);
         uint grossReward = _getRandom(gambler) % (MAX_LOTTERY_REWARD - MIN_LOTTERY_REWARD + 1) + MIN_LOTTERY_REWARD;
@@ -129,11 +183,17 @@ contract FilaDoge is ERC20 {
         _mint(gambler, gamblerReward);
     }
 
+    /**
+     * @dev Returns next invitee's reward.
+     */
     function nextInviteeReward() public view returns (uint) {
         if (_invitees.length == MAX_INVITATION) return 0;
         return _withDecimal(_inviteeReward(_invitees.length + 1));
     }
 
+    /**
+     * @dev Returns inviters' addresses as well as rewards received correspondingly.
+     */
     function hasRewardedInviterList() public view returns (ValuePair[] memory result) {
         result = new ValuePair[](_inviters.length); 
         for (uint i = 0; i < _inviters.length; i++) {
@@ -143,6 +203,9 @@ contract FilaDoge is ERC20 {
         }
     }
 
+    /**
+     * @dev Returns gamblers' addresses as well as rewards received correspondingly.
+     */
     function hasRewardedGamblerList() public view returns (ValuePair[] memory result) {
         result = new ValuePair[](_gamblers.length); 
         for (uint i = 0; i < _gamblers.length; i++) {
@@ -152,64 +215,130 @@ contract FilaDoge is ERC20 {
         }
     }
 
-    function hasRewardedInviterAmount() public view returns (uint) {
-        return _withDecimal(hasRewardedInviters * INVITER_REWARD);
+    /**
+     * @dev Returns currently released uints of inviter reward.
+     */
+    function hasRewardedInviters() public view returns (uint) {
+        return _hasRewardedInviters;
     }
 
+    /**
+     * @dev Returns whether `invitee` has been invited.
+     */
+    function hasBeenInvited(address invitee) public view returns (bool) {
+        return _hasBeenInvited[invitee];
+    }
+
+    /**
+     * @dev Returns whether `gambler` has taken part in lottery game.
+     */
+    function hasGambled(address gambler) public view returns (bool) {
+        return _hasGambled[gambler];
+    }
+
+    /**
+     * @dev Returns currently released inviter reward amount in total.
+     */
+    function hasRewardedInviterAmount() public view returns (uint) {
+        return _withDecimal(_hasRewardedInviters * INVITER_REWARD);
+    }
+
+    /**
+     * @dev Returns currently released invitee reward amount in total.
+     */
     function hasRewardedInviteeAmount() public view returns (uint) {
         return _withDecimal(_hasRewardedInviteeAmount);
     }
 
+    /**
+     * @dev Returns current number of invitees.
+     */
     function hasRewardedInvitees() public view returns (uint) {
         return _invitees.length;
     }
 
+    /**
+     * @dev Returns current address list of invitees.
+     */
     function hasRewardedInviteeList() public view returns (address[] memory) {
         return _invitees;
     }
 
+    /**
+     * @dev Returns currently released lottery reward amount in total.
+     */
     function lotteryReleasedAmount() public view returns (uint) {
         return _withDecimal(_lotteryReleasedAmount);
     }
 
+    /**
+     * @dev Returns current number of gamblers.
+     */
     function gamblers() public view returns (uint) {
         return _gamblers.length;
     }
 
+    /**
+     * @dev Returns current address list of gamblers.
+     */
     function gamblerList() public view returns (address[] memory) {
         return _gamblers;
     }
 
+    /**
+     * @dev Returns contract owner address.
+     */
     function owner() public view returns (address) {
         return _owner;
     }
 
+    /**
+     * @dev Returns lottery start time. Lottery can only be played after this timestamp.
+     */
     function lotteryStartTime() public view returns (uint) {
         return _lotteryStartTime;
     }
 
+    /**
+     * @dev Returns maximum token supply.
+     */
     function maxSupply() public view returns (uint) {
         return _withDecimal(MAX_SUPPLY);
     }
 
+    /**
+     * @dev Change contract owner address to `newOwner`.
+     *
+     * We plan to change the contract owner address to a dead one (i.e. 0xdead) in the future.
+     */
     function changeOwner(address newOwner) onlyOwner public returns (address) {
         _owner = newOwner;
         return _owner;
     }
 
+    /**
+     * @dev Change lottery start time to `newLotteryStartTime`.
+     */
     function changeLotteryStartTime(uint newLotteryStartTime) onlyOwner public returns (uint) {
         _lotteryStartTime = newLotteryStartTime;
         return _lotteryStartTime;
     }
 
+    /**
+     * @dev Returns whether lottery has started.
+     */
+    function isLotteryStarted() public view returns (bool) {
+        return block.timestamp >= _lotteryStartTime;
+    }
+
     function _rewardInviter(address inviter) private returns (uint inviterReward) {
-        if(hasRewardedInviters < MAX_INVITATION || inviter == address(0)) {
+        if(_hasRewardedInviters < MAX_INVITATION || inviter == address(0)) {
             if (_inviterRewards[inviter] == 0) {
                 _inviters.push(inviter);
             }
             _inviterRewards[inviter] += INVITER_REWARD;
             if(inviter != address(0)) {
-                hasRewardedInviters ++;
+                _hasRewardedInviters ++;
                 inviterReward = _withDecimal(INVITER_REWARD);
                 _mint(inviter, inviterReward);
             }
@@ -238,29 +367,7 @@ contract FilaDoge is ERC20 {
     }
 
     modifier afterLotteryStartTime() {
-        require(block.timestamp >= _lotteryStartTime, "Lottery has not started.");
+        require(isLotteryStarted(), "Lottery has not started.");
         _;
-    }
-
-    //only for dev
-    function checks() public pure {
-        assert(DONATION_COOP_POOL == MAX_SUPPLY * 20 / 100);
-        assert(FUTURE_EVENT_POOL == MAX_SUPPLY * 10 / 100);
-        assert(AIRDROP_1_REWARD == MAX_SUPPLY * 6 / 100);
-
-        uint airdrop_2 =
-          AIRDROP_2_TIER_0 * AIRDROP_2_TIER_0_REWARD
-        + (AIRDROP_2_TIER_1 - AIRDROP_2_TIER_0) * AIRDROP_2_TIER_1_REWARD
-        + (AIRDROP_2_TIER_2 - AIRDROP_2_TIER_1) * AIRDROP_2_TIER_2_REWARD
-        + (AIRDROP_2_TIER_3 - AIRDROP_2_TIER_2) * AIRDROP_2_TIER_3_REWARD
-        + (AIRDROP_2_TIER_4 - AIRDROP_2_TIER_3) * AIRDROP_2_TIER_4_REWARD;
-        assert(airdrop_2 == MAX_SUPPLY * 4 / 100);
-
-        uint inviterPool = INVITER_REWARD * MAX_INVITATION;
-        assert(inviterPool == MAX_SUPPLY * 20 / 100);
-
-        assert(MIN_LOTTERY_REWARD < MAX_LOTTERY_REWARD);
-
-        assert(LOTTERY_POOL == MAX_SUPPLY * 20 / 100);
     }
 }
