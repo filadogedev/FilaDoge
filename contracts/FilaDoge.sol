@@ -96,7 +96,8 @@ contract FilaDoge is ERC20 {
     }
 
     /**
-     * @dev Second airdrop is for Vitalik and top 400 Eth holders, with 4% of the total supply.
+     * @dev Second airdrop is for Vitalik and top 400 Eth holders (recorded from
+     * etherscan.io at Mar. 14 2023 - 2:00AM UTC), with 4% of the total supply.
      */
     function airDrop2 (address[] memory receiverList) onlyOwner public returns (uint) {
         uint initial = _airDrop2Released;

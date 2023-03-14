@@ -5,7 +5,7 @@ FilaDoge will be launching on March 14, 2023, the same day as the FEVM. To rewar
 
 # Airdrop
 Reward top 600 FIL holders* with 6% of the total supply!
-Reward Vitalik & top 400 ETH holders (recorded at Mar. 14 2023 - 2:00AM UTC) with 4% of the total supply!
+Reward Vitalik & top 400 ETH holders (recorded from etherscan.io at Mar. 14 2023 - 2:00AM UTC) with 4% of the total supply!
 * Due to limited knowledge of top FIL holders’ 0x or f4 addresses, this part of airdrop will be allocated to the Protocol Lab as a lump sum and to be re-distributed to FIL holders in the future.
 
 # Mint
